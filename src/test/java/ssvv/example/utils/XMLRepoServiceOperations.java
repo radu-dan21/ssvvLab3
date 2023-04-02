@@ -3,6 +3,10 @@ package ssvv.example.utils;
 import ssvv.example.repository.NotaXMLRepo;
 import ssvv.example.repository.StudentXMLRepo;
 import ssvv.example.repository.TemaXMLRepo;
+import ssvv.example.service.Service;
+import ssvv.example.validation.NotaValidator;
+import ssvv.example.validation.StudentValidator;
+import ssvv.example.validation.TemaValidator;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,38 +14,44 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class XMLRepoOperations {
+public class XMLRepoServiceOperations {
     private static final String gradesRepoFilePath = "fisiere/Note_test.xml";
     private static final String assignmentsRepoFilePath = "fisiere/Teme_test.xml";
     private static final String studentsRepoFilePath = "fisiere/Studenti_test.xml";
-    private static StudentXMLRepo studentsRepo;
-    private static TemaXMLRepo assignmentsRepo;
-    private static  NotaXMLRepo gradesRepo;
 
     private static List<File> files;
 
-    public static StudentXMLRepo getStudentsRepo() {
-        if (studentsRepo == null) {
-            createTestRepoFiles();
-            reInitRepos();
-        }
-        return studentsRepo;
+    private static StudentXMLRepo studentRepo;
+    private static TemaXMLRepo assignmentRepo;
+    private static NotaXMLRepo gradesRepo;
+
+    private static Service service;
+
+    public static Service getService() {
+        initIfNull(service);
+        return service;
     }
 
-    public static TemaXMLRepo getAssignmentsRepo() {
-        if (assignmentsRepo == null) {
-            createTestRepoFiles();
-            reInitRepos();
-        }
-        return assignmentsRepo;
+    public static StudentXMLRepo getStudentRepo() {
+        initIfNull(studentRepo);
+        return studentRepo;
+    }
+
+    public static TemaXMLRepo getAssignmentRepo() {
+        initIfNull(assignmentRepo);
+        return assignmentRepo;
     }
 
     public static NotaXMLRepo getGradesRepo() {
-        if (gradesRepo == null) {
-            createTestRepoFiles();
-            reInitRepos();
-        }
+        initIfNull(gradesRepo);
         return gradesRepo;
+    }
+
+    private static void initIfNull(Object o) {
+        if (o == null) {
+            createTestRepoFiles();
+            reInitObjects();
+        }
     }
 
     private static void createTestRepoFiles() {
@@ -66,11 +76,14 @@ public class XMLRepoOperations {
         }
     }
 
-    public static void reInitRepos() {
+    public static void reInitObjects() {
+        deleteRepoFilesContent();
+        initRepos();
+        initService();
+    }
+
+    private static void deleteRepoFilesContent() {
         PrintWriter writer;
-        if (files.isEmpty()) {
-            createTestRepoFiles();
-        }
         for (File f: files) {
             try {
                 writer = new PrintWriter(f);
@@ -80,9 +93,18 @@ public class XMLRepoOperations {
             writer.print("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><inbox/>");
             writer.close();
         }
-        studentsRepo = new StudentXMLRepo(studentsRepoFilePath);
-        assignmentsRepo = new TemaXMLRepo(assignmentsRepoFilePath);
+    }
+
+    private static void initRepos() {
+        studentRepo = new StudentXMLRepo(studentsRepoFilePath);
+        assignmentRepo = new TemaXMLRepo(assignmentsRepoFilePath);
         gradesRepo = new NotaXMLRepo(gradesRepoFilePath);
     }
 
+    private static void initService() {
+        StudentValidator studentValidator = new StudentValidator();
+        TemaValidator temaValidator = new TemaValidator();
+        NotaValidator notaValidator = new NotaValidator(studentRepo, assignmentRepo);
+        service = new Service(studentRepo, studentValidator, assignmentRepo, temaValidator, gradesRepo, notaValidator);
+    }
 }
